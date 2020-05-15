@@ -1,6 +1,6 @@
 package online.wgear.test.spring_boot_lezhnin.rest;
 
-import io.swagger.annotations.Api;
+import io.swagger.annotations.*;
 import online.wgear.test.spring_boot_lezhnin.dao.CatalogRepository;
 import online.wgear.test.spring_boot_lezhnin.dao.ProductRepository;
 import online.wgear.test.spring_boot_lezhnin.model.Catalog;
@@ -27,8 +27,16 @@ public class ProductController {
     CatalogRepository catalogDao;
 
     @PostMapping("/product/{catalog}")
-    ResponseEntity<Product> addProduct(@PathVariable(value = "catalog") Long catalogId,
-                                       @Valid @RequestBody Product product){
+    @ApiOperation(value = "Add product", response = Catalog.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Successfully add product"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Parent catalog not found")
+    })
+    ResponseEntity<Product> addProduct(
+            @ApiParam(value = "ID of parent catalog node")
+            @PathVariable(value = "catalog") Long catalogId,
+            @Valid @RequestBody Product product){
         Catalog parentCatalog = catalogDao.findById(catalogId)
                 .orElseThrow(()->new CatalogNotFoundException(catalogId));
 
@@ -58,8 +66,8 @@ public class ProductController {
         Product product = productDao.findById(id)
                 .orElseThrow(()->new ProductNotFoundException(id));
 
-        Catalog catalog = catalogDao.findById(id)
-                .orElseThrow(()->new CatalogNotFoundException(id));
+        Catalog catalog = catalogDao.findById(parentId)
+                .orElseThrow(()->new CatalogNotFoundException(parentId));
 
         product.setCatalog(catalog);
         productDao.save(product);
