@@ -14,7 +14,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
-
 @RestController
 @Validated
 @Api(value="Product management system")
@@ -27,7 +26,7 @@ public class ProductController {
     CatalogRepository catalogDao;
 
     @PostMapping("/product/{catalog}")
-    @ApiOperation(value = "Add product", response = Catalog.class)
+    @ApiOperation(value = "Add product", response = Product.class)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Successfully add product"),
             @ApiResponse(code = 400, message = "Wrong parameter format"),
@@ -47,8 +46,16 @@ public class ProductController {
     }
 
     @PutMapping("/product/{id}")
-    ResponseEntity<Product> updateProduct(@PathVariable("id") Long id,
-                                          @Valid @RequestBody Product product){
+    @ApiOperation(value = "Update product", response = Product.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully update product"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Product not found")
+    })
+    ResponseEntity<Product> updateProduct(
+            @ApiParam(value = "ID of product item for update",required = true)
+            @PathVariable("id") Long id,
+            @Valid @RequestBody Product product){
         Product item = productDao.findById(id)
                 .orElseThrow(()->new ProductNotFoundException(id));
 
@@ -61,8 +68,18 @@ public class ProductController {
     }
 
     @PutMapping("/product/{id}/move/{parent}")
-    ResponseEntity<Product> moveProduct(@PathVariable("id") Long id,
-                                        @PathVariable("parent") Long parentId){
+    @ApiOperation(value = "Move product. (Change the parent of catalog node)", response = Product.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully moved product"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Catalog not found"),
+            @ApiResponse(code = 404, message = "Product not found")
+    })
+    ResponseEntity<Product> moveProduct(
+            @ApiParam(value = "ID of product item for moving",required = true)
+            @PathVariable("id") Long id,
+            @ApiParam(value = "ID of new parent catalog",required = true)
+            @PathVariable("parent") Long parentId){
         Product product = productDao.findById(id)
                 .orElseThrow(()->new ProductNotFoundException(id));
 
@@ -76,7 +93,15 @@ public class ProductController {
     }
 
     @GetMapping("/product/{id}")
-    ResponseEntity<Product> getProduct(@PathVariable("id") Long id){
+    @ApiOperation(value = "Get product item", response = Product.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Product not found")
+    })
+    ResponseEntity<Product> getProduct(
+            @ApiParam(value = "ID of product",required = true)
+            @PathVariable("id") Long id){
         Product product = productDao.findById(id)
                 .orElseThrow(()->new ProductNotFoundException(id));
         return ResponseEntity.ok(product);

@@ -114,7 +114,7 @@ public class CatalogController {
             @ApiResponse(code = 404, message = "Catalog not found")
     })
     ResponseEntity<Catalog> getCatalog(
-            @ApiParam(value = "ID of catalog node for update.",required = true)
+            @ApiParam(value = "ID of catalog node",required = true)
             @PathVariable("id") Long id){
         Catalog item = catalogDao.findById(id)
                 .orElseThrow(()->new CatalogNotFoundException(id));
@@ -130,7 +130,7 @@ public class CatalogController {
             @ApiResponse(code = 404, message = "Catalog not found")
     })
     ResponseEntity removeCatalog(
-            @ApiParam(value = "ID of catalog node for update.",required = true)
+            @ApiParam(value = "ID of catalog node for remove",required = true)
             @PathVariable("id") Long id){
         Catalog catalog = catalogDao.findById(id)
                 .orElseThrow(()->new CatalogNotFoundException(id));
