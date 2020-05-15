@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -125,7 +124,7 @@ public class CatalogController {
         return ResponseEntity.ok(item);
     }
 
-    @GetMapping({"/catalogs/{parentid}}","/catalogs}"})
+    @GetMapping({"/catalogs/{parentid}","/catalogs"})
     @ApiOperation(value = "Get catalogs list by parend ID. If parent ID not specified, " +
                           "then will be will be transferred to the root nodes",
                   response = CatalogList.class)
@@ -134,10 +133,9 @@ public class CatalogController {
             @ApiResponse(code = 400, message = "Wrong parameter format"),
             @ApiResponse(code = 404, message = "Catalog not found")
     })
-    ResponseEntity<CatalogList> getRootCatalogs(
+    ResponseEntity<CatalogList> getCatalogs(
             @ApiParam(value = "ID of parent catalog node")
             @PathVariable(value = "parentid") Optional<Long> parentId){
-
         Catalog parentCatalog = null;
 
         if (parentId.isPresent()){
