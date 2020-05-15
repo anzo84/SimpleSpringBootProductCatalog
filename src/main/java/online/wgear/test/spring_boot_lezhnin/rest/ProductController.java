@@ -108,7 +108,15 @@ public class ProductController {
     }
 
     @DeleteMapping("/product/{id}")
-    ResponseEntity removeProduct(@PathVariable("id")Long id){
+    @ApiOperation(value = "Remove product item", response = Product.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully removed product"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Product not found")
+    })
+    ResponseEntity removeProduct(
+            @ApiParam(value = "ID of product",required = true)
+            @PathVariable("id")Long id){
         Product product = productDao.findById(id)
                 .orElseThrow(()->new ProductNotFoundException(id));
         productDao.delete(product);

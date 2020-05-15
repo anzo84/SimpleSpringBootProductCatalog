@@ -125,7 +125,7 @@ public class CatalogController {
     @DeleteMapping("/catalog/{id}")
     @ApiOperation(value = "Remove catalog node with all products and subnodes", response = Catalog.class)
     @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "Successfully remove catalog"),
+            @ApiResponse(code = 200, message = "Successfully removed catalog"),
             @ApiResponse(code = 400, message = "Wrong parameter format"),
             @ApiResponse(code = 404, message = "Catalog not found")
     })
