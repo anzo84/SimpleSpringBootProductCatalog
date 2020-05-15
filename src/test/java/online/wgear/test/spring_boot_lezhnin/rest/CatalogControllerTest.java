@@ -1,5 +1,6 @@
 package online.wgear.test.spring_boot_lezhnin.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import online.wgear.test.spring_boot_lezhnin.dao.CatalogRepository;
 import online.wgear.test.spring_boot_lezhnin.model.Catalog;
 import online.wgear.test.spring_boot_lezhnin.rest.error.CustomErrorResponse;
@@ -13,8 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,13 +35,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class CatalogControllerTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private TestRestTemplate testREST;
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
     private CatalogRepository mockRepo;
+
+    private static final ObjectMapper om = new ObjectMapper();
 
     @Before
     public void init() throws ParseException {
@@ -59,7 +61,7 @@ public class CatalogControllerTest {
                             "\"parent\":null," +
                             "\"children\":[],\"products\":[]}";
 
-        ResponseEntity<String> response = restTemplate.getForEntity("/catalog/1",String.class);
+        ResponseEntity<String> response = testREST.getForEntity("/catalog/1",String.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         JSONAssert.assertEquals(expected, response.getBody(), false);
@@ -68,7 +70,7 @@ public class CatalogControllerTest {
 
     @Test
     public void getCatalog_404() {
-        ResponseEntity<CustomErrorResponse> response = restTemplate.getForEntity("/catalog/2", CustomErrorResponse.class);
+        ResponseEntity<CustomErrorResponse> response = testREST.getForEntity("/catalog/2", CustomErrorResponse.class);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Catalog ID not found : 2", response.getBody().getError());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
@@ -76,7 +78,7 @@ public class CatalogControllerTest {
 
     @Test
     public void getCatalog_400() {
-        ResponseEntity<CustomErrorResponse> response = restTemplate.getForEntity("/catalog/a", CustomErrorResponse.class);
+        ResponseEntity<CustomErrorResponse> response = testREST.getForEntity("/catalog/a", CustomErrorResponse.class);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; " +
                      "nested exception is java.lang.NumberFormatException: For input string: \"a\"",
@@ -241,6 +243,101 @@ public class CatalogControllerTest {
                 .andExpect(status().is(404))
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.error",is("Catalog ID not found : 1")));
+    }
+
+    @Test
+    public void updateCatalog_200() throws Exception {
+        Catalog catalog = new Catalog();
+        catalog.setId(1L);
+        catalog.setName("Catalog");
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(catalog));
+        when(mockRepo.save(any(Catalog.class))).thenReturn(catalog);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = new HttpEntity<>(om.writeValueAsString(catalog), headers);
+
+        ResponseEntity<Catalog> response = testREST.exchange("/catalog/1", HttpMethod.PUT, entity, Catalog.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(response.getBody().getName(),catalog.getName());
+
+        verify(mockRepo,times(1)).findById(1L);
+        verify(mockRepo,times(1)).save(any(Catalog.class));
+    }
+
+    @Test
+    public void updateCatalog_404() throws Exception {
+        Catalog catalog = new Catalog();
+        catalog.setId(1L);
+        catalog.setName("Catalog");
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.empty());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = new HttpEntity<>(om.writeValueAsString(catalog), headers);
+
+        ResponseEntity<CustomErrorResponse> response = testREST.exchange("/catalog/1", HttpMethod.PUT,
+                entity, CustomErrorResponse.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals(response.getBody().getStatus(),404);
+        assertEquals(response.getBody().getError(),"Catalog ID not found : 1");
+    }
+
+    @Test
+    public void addCatalog_200() throws Exception {
+        Catalog catalog = new Catalog();
+        catalog.setId(1L);
+        catalog.setName("Parent catalog");
+
+        Catalog paramCatalog = new Catalog();
+        paramCatalog.setId(2L);
+        paramCatalog.setName("New catalog");
+
+        Catalog afterSaveCatalog = new Catalog();
+        afterSaveCatalog.setId(2L);
+        afterSaveCatalog.setName("New catalog");
+        afterSaveCatalog.setParent(catalog);
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(catalog));
+        when(mockRepo.save(any(Catalog.class))).thenReturn(afterSaveCatalog);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = new HttpEntity<>(om.writeValueAsString(paramCatalog), headers);
+
+        ResponseEntity<Catalog> response = testREST.exchange("/catalog/1", HttpMethod.POST, entity, Catalog.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(response.getBody().getName(),afterSaveCatalog.getName());
+        assertEquals(response.getBody().getId(),afterSaveCatalog.getId());
+
+        verify(mockRepo,times(1)).findById(1L);
+        verify(mockRepo,times(1)).save(any(Catalog.class));
+    }
+
+    @Test
+    public void addCatalogToRoot_200() throws Exception {
+        Catalog catalog = new Catalog();
+        catalog.setId(1L);
+        catalog.setName("New catalog");
+
+        when(mockRepo.save(any(Catalog.class))).thenReturn(catalog);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = new HttpEntity<>(om.writeValueAsString(catalog), headers);
+
+        ResponseEntity<Catalog> response = testREST.exchange("/catalog", HttpMethod.POST, entity, Catalog.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(response.getBody().getName(),catalog.getName());
+        assertEquals(response.getBody().getId(),catalog.getId());
+
+        verify(mockRepo,times(1)).save(any(Catalog.class));
     }
 
 }
