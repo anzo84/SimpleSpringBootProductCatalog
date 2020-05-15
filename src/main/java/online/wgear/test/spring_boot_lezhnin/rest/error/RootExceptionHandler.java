@@ -23,8 +23,7 @@ import java.util.stream.Collectors;
 public class RootExceptionHandler  extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({CatalogNotFoundException.class,
-                       ProductNotFoundException.class,
-                        LoopingErrorException.class})
+                       ProductNotFoundException.class})
     public ResponseEntity<CustomErrorResponse> customHandleNotFound(Exception ex, WebRequest request) {
         CustomErrorResponse errors = new CustomErrorResponse();
         errors.setTimestamp(LocalDateTime.now());
@@ -34,7 +33,8 @@ public class RootExceptionHandler  extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({ConstraintViolationException.class,
-                       MethodArgumentTypeMismatchException.class})
+                       MethodArgumentTypeMismatchException.class,
+                       LoopingErrorException.class})
     public ResponseEntity<CustomErrorResponse> constraintViolationException(Exception ex, WebRequest request) {
         CustomErrorResponse errors = new CustomErrorResponse();
         errors.setTimestamp(LocalDateTime.now());

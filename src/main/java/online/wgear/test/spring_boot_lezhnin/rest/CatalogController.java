@@ -7,7 +7,6 @@ import online.wgear.test.spring_boot_lezhnin.model.CatalogList;
 import online.wgear.test.spring_boot_lezhnin.rest.error.CatalogNotFoundException;
 import online.wgear.test.spring_boot_lezhnin.rest.error.LoopingErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.ExposesResourceFor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -18,7 +17,6 @@ import java.util.Optional;
 @RestController
 @Validated
 @Api(value="Catalog tree management system")
-@ExposesResourceFor(Catalog.class)
 public class CatalogController {
 
     @Autowired

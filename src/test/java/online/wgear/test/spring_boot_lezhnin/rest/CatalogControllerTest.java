@@ -41,7 +41,7 @@ public class CatalogControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private CatalogRepository mockDao;
+    private CatalogRepository mockRepo;
 
     @Before
     public void init() throws ParseException {
@@ -49,12 +49,12 @@ public class CatalogControllerTest {
         catalog.setId(1L);
         catalog.setName("ROOT");
 
-        when(mockDao.findById(1L)).thenReturn(Optional.of(catalog));
-        when(mockDao.findById(2L)).thenReturn(Optional.empty());
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(catalog));
+        when(mockRepo.findById(2L)).thenReturn(Optional.empty());
     }
 
     @Test
-    public void SUCCESS_200_getCatalog() throws JSONException {
+    public void getCatalog_200() throws JSONException {
         String expected = "{\"id\":1,\"name\":\"ROOT\"," +
                             "\"parent\":null," +
                             "\"children\":[],\"products\":[]}";
@@ -63,11 +63,11 @@ public class CatalogControllerTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         JSONAssert.assertEquals(expected, response.getBody(), false);
-        verify(mockDao, times(1)).findById(1L);
+        verify(mockRepo, times(1)).findById(1L);
     }
 
     @Test
-    public void NOT_FOUND_404_getCatalog() {
+    public void getCatalog_404() {
         ResponseEntity<CustomErrorResponse> response = restTemplate.getForEntity("/catalog/2", CustomErrorResponse.class);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Catalog ID not found : 2", response.getBody().getError());
@@ -75,7 +75,7 @@ public class CatalogControllerTest {
     }
 
     @Test
-    public void WRONG_ARGUMENT_400_getCatalog() {
+    public void getCatalog_400() {
         ResponseEntity<CustomErrorResponse> response = restTemplate.getForEntity("/catalog/a", CustomErrorResponse.class);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; " +
@@ -85,7 +85,7 @@ public class CatalogControllerTest {
     }
 
     @Test
-    public void SUCCESS_400_moveCatalogToRoot() throws Exception {
+    public void moveCatalogToRoot_200() throws Exception {
         Catalog root = new Catalog();
         root.setId(1L);
         root.setName("Root");
@@ -95,9 +95,9 @@ public class CatalogControllerTest {
         level1.setName("Level 1");
         level1.setParent(root);
 
-        when(mockDao.findById(1L)).thenReturn(Optional.of(root));
-        when(mockDao.findById(2L)).thenReturn(Optional.of(level1));
-        when(mockDao.save(any(Catalog.class))).thenReturn(level1);
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+        when(mockRepo.findById(2L)).thenReturn(Optional.of(level1));
+        when(mockRepo.save(any(Catalog.class))).thenReturn(level1);
 
         mockMvc.perform(put("/catalog/2/move"))
                 .andExpect(status().isOk())
@@ -105,11 +105,11 @@ public class CatalogControllerTest {
                 .andExpect(jsonPath("$.name", is("Level 1")))
                 .andExpect(jsonPath("$.parent",is(nullValue())));
 
-        verify(mockDao,times(1)).save(any(Catalog.class));
+        verify(mockRepo,times(1)).save(any(Catalog.class));
     }
 
     @Test
-    public void SUCCESS_400_moveCatalogToNewParent() throws Exception {
+    public void moveCatalogToNewParent_200() throws Exception {
         Catalog root = new Catalog();
         root.setId(1L);
         root.setName("Root");
@@ -123,10 +123,10 @@ public class CatalogControllerTest {
         testCatalog.setId(3L);
         testCatalog.setName("Moved catalog");
 
-        when(mockDao.findById(1L)).thenReturn(Optional.of(root));
-        when(mockDao.findById(2L)).thenReturn(Optional.of(level1));
-        when(mockDao.findById(3L)).thenReturn(Optional.of(testCatalog));
-        when(mockDao.save(any(Catalog.class))).thenReturn(testCatalog);
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+        when(mockRepo.findById(2L)).thenReturn(Optional.of(level1));
+        when(mockRepo.findById(3L)).thenReturn(Optional.of(testCatalog));
+        when(mockRepo.save(any(Catalog.class))).thenReturn(testCatalog);
 
         mockMvc.perform(put("/catalog/3/move/2"))
                 .andExpect(status().isOk())
@@ -134,7 +134,113 @@ public class CatalogControllerTest {
                 .andExpect(jsonPath("$.name", is("Moved catalog")))
                 .andExpect(jsonPath("$.parent.id",is(2)));
 
-        verify(mockDao,times(1)).save(any(Catalog.class));
+        verify(mockRepo,times(1)).save(any(Catalog.class));
+    }
+
+    @Test
+    public void moveCatalogToRoot_400() throws Exception {
+        Catalog root = new Catalog();
+        root.setId(1L);
+        root.setName("Root");
+
+        Catalog level1 = new Catalog();
+        level1.setId(2L);
+        level1.setName("Level 1");
+        level1.setParent(root);
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+        when(mockRepo.findById(2L)).thenReturn(Optional.of(level1));
+        when(mockRepo.save(any(Catalog.class))).thenReturn(level1);
+
+        mockMvc.perform(put("/catalog/a/move"))
+                .andExpect(status().is(400))
+                .andExpect(jsonPath("$.status", is(400)));
+    }
+
+    @Test
+    public void moveCatalogToRootNotFound_404() throws Exception {
+        when(mockRepo.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/catalog/1/move"))
+                .andExpect(status().is(404))
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error",is("Catalog ID not found : 1")));
+    }
+
+    @Test
+    public void moveCatalogToNewParent_404() throws Exception {
+        when(mockRepo.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/catalog/1/move"))
+                .andExpect(status().is(404))
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error",is("Catalog ID not found : 1")));
+    }
+
+    @Test
+    public void moveCatalogLoopingError_400() throws Exception {
+        Catalog root = new Catalog();
+        root.setId(1L);
+        root.setName("Root");
+
+        Catalog level1 = new Catalog();
+        level1.setId(2L);
+        level1.setName("Level 1");
+        level1.setParent(root);
+
+        Catalog level2 = new Catalog();
+        level2.setId(3L);
+        level2.setName("Level 2");
+        level2.setParent(level1);
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+        when(mockRepo.findById(2L)).thenReturn(Optional.of(level1));
+        when(mockRepo.findById(3L)).thenReturn(Optional.of(level2));
+
+        mockMvc.perform(put("/catalog/1/move/3"))
+                .andExpect(status().is(400))
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error",is("Looping error")));
+    }
+
+    @Test
+    public void moveCatalogSelfLoopingError_400() throws Exception {
+        Catalog root = new Catalog();
+        root.setId(1L);
+        root.setName("Root");
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+
+        mockMvc.perform(put("/catalog/1/move/1"))
+                .andExpect(status().is(400))
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.error",is("Looping error")));
+    }
+
+    @Test
+    public void removeCatalog_200() throws Exception {
+        Catalog root = new Catalog();
+        root.setId(1L);
+        root.setName("Root");
+
+        when(mockRepo.findById(1L)).thenReturn(Optional.of(root));
+        doNothing().when(mockRepo).delete(any(Catalog.class));
+
+        mockMvc.perform(delete("/catalog/1"))
+                .andExpect(status().is(200))
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.name", is("Root")));
+
+        verify(mockRepo,times(1)).delete(any(Catalog.class));
+    }
+
+    @Test
+    public void removeCatalog_404() throws Exception {
+        when(mockRepo.findById(1L)).thenReturn(Optional.empty());
+        mockMvc.perform(delete("/catalog/1"))
+                .andExpect(status().is(404))
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.error",is("Catalog ID not found : 1")));
     }
 
 }
