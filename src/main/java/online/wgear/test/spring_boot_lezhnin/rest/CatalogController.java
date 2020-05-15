@@ -3,19 +3,23 @@ package online.wgear.test.spring_boot_lezhnin.rest;
 import io.swagger.annotations.*;
 import online.wgear.test.spring_boot_lezhnin.dao.CatalogRepository;
 import online.wgear.test.spring_boot_lezhnin.model.Catalog;
+import online.wgear.test.spring_boot_lezhnin.model.CatalogList;
 import online.wgear.test.spring_boot_lezhnin.rest.error.CatalogNotFoundException;
 import online.wgear.test.spring_boot_lezhnin.rest.error.LoopingErrorException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.ExposesResourceFor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
 @Validated
 @Api(value="Catalog tree management system")
+@ExposesResourceFor(Catalog.class)
 public class CatalogController {
 
     @Autowired
@@ -105,7 +109,6 @@ public class CatalogController {
         return ResponseEntity.ok(targetCatalog);
     }
 
-
     @GetMapping("/catalog/{id}")
     @ApiOperation(value = "Get catalog node", response = Catalog.class)
     @ApiResponses(value = {
@@ -120,6 +123,30 @@ public class CatalogController {
                 .orElseThrow(()->new CatalogNotFoundException(id));
 
         return ResponseEntity.ok(item);
+    }
+
+    @GetMapping({"/catalogs/{parentid}}","/catalogs}"})
+    @ApiOperation(value = "Get catalogs list by parend ID. If parent ID not specified, " +
+                          "then will be will be transferred to the root nodes",
+                  response = CatalogList.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully"),
+            @ApiResponse(code = 400, message = "Wrong parameter format"),
+            @ApiResponse(code = 404, message = "Catalog not found")
+    })
+    ResponseEntity<CatalogList> getRootCatalogs(
+            @ApiParam(value = "ID of parent catalog node")
+            @PathVariable(value = "parentid") Optional<Long> parentId){
+
+        Catalog parentCatalog = null;
+
+        if (parentId.isPresent()){
+            parentCatalog = catalogDao.findById(parentId.get())
+                    .orElseThrow(()->new CatalogNotFoundException(parentId.get()));
+        }
+
+        CatalogList list = catalogDao.findByParentIs(parentCatalog);
+        return ResponseEntity.ok(list);
     }
 
     @DeleteMapping("/catalog/{id}")
