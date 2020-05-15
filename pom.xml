@@ -84,6 +84,21 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <environmentVariables>
+                        <LOG_LEVEL>DEBUG</LOG_LEVEL>
+                        <SERVER_PORT>8080</SERVER_PORT>
+                        <DB_HOST>localhost</DB_HOST>
+                        <DB_PORT>5433</DB_PORT>
+                        <DB_NAME>rest_test</DB_NAME>
+                        <DB_USER>postgres</DB_USER>
+                        <DB_PASS>123456</DB_PASS>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
