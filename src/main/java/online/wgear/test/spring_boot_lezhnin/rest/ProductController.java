@@ -1,5 +1,6 @@
 package online.wgear.test.spring_boot_lezhnin.rest;
 
+import io.swagger.annotations.Api;
 import online.wgear.test.spring_boot_lezhnin.dao.CatalogRepository;
 import online.wgear.test.spring_boot_lezhnin.dao.ProductRepository;
 import online.wgear.test.spring_boot_lezhnin.model.Catalog;
@@ -7,6 +8,7 @@ import online.wgear.test.spring_boot_lezhnin.model.Product;
 import online.wgear.test.spring_boot_lezhnin.rest.error.CatalogNotFoundException;
 import online.wgear.test.spring_boot_lezhnin.rest.error.ProductNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,7 @@ import javax.validation.Valid;
 
 @RestController
 @Validated
+@Api(value="Product management system")
 public class ProductController {
 
     @Autowired
@@ -32,7 +35,7 @@ public class ProductController {
         product.setCatalog(parentCatalog);
         productDao.save(product);
 
-        return ResponseEntity.ok(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(product);
     }
 
     @PutMapping("/product/{id}")
@@ -47,6 +50,21 @@ public class ProductController {
         productDao.save(item);
 
         return ResponseEntity.ok(item);
+    }
+
+    @PutMapping("/product/{id}/move/{parent}")
+    ResponseEntity<Product> moveProduct(@PathVariable("id") Long id,
+                                        @PathVariable("parent") Long parentId){
+        Product product = productDao.findById(id)
+                .orElseThrow(()->new ProductNotFoundException(id));
+
+        Catalog catalog = catalogDao.findById(id)
+                .orElseThrow(()->new CatalogNotFoundException(id));
+
+        product.setCatalog(catalog);
+        productDao.save(product);
+
+        return ResponseEntity.ok(product);
     }
 
     @GetMapping("/product/{id}")
