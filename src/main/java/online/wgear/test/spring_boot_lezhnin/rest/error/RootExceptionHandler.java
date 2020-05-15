@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
 public class RootExceptionHandler  extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({CatalogNotFoundException.class,
-                       ProductNotFoundException.class})
+                       ProductNotFoundException.class,
+                        LoopingErrorException.class})
     public ResponseEntity<CustomErrorResponse> customHandleNotFound(Exception ex, WebRequest request) {
         CustomErrorResponse errors = new CustomErrorResponse();
         errors.setTimestamp(LocalDateTime.now());
