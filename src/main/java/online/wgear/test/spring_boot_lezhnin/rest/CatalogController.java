@@ -96,11 +96,11 @@ public class CatalogController {
             }
 
             targetCatalog.setParent(newParent);
-            catalogDao.save(targetCatalog);
+            targetCatalog = catalogDao.save(targetCatalog);
         }
         else if (targetCatalog.getParent()!=null){
             targetCatalog.setParent(null);
-            catalogDao.save(targetCatalog);
+            targetCatalog = catalogDao.save(targetCatalog);
         }
 
         return ResponseEntity.ok(targetCatalog);
